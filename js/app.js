@@ -59,6 +59,7 @@ class App {
         this.bind('export-safe-btn', () => this.exportSafeBooks());
         this.bind('export-warning-btn', () => this.exportOverLevelBooks());
         this.bind('ai-search-btn', () => this.aiSearchBook());
+        this.bind('camera-btn', () => camera.openCamera());
     }
 
     bindModals() {

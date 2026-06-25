@@ -229,6 +229,19 @@
                 </div>
             </div>
 
+            <!-- 拍照识书功能 -->
+            <div class="ai-search-section" style="background: linear-gradient(135deg, #11998e10 0%, #38ef7d10 100%); border-color: #11998e30;">
+                <h3>📷 拍照识书 - 扫描书名快速分析</h3>
+                <p class="ai-search-desc">拍摄书籍封面，AI自动识别书名并分析是否适合初中生阅读</p>
+                <div class="ai-search-box">
+                    <button id="camera-btn" class="btn btn-success" style="flex:1;">📷 打开摄像头拍照</button>
+                    <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none;">
+                </div>
+                <div id="camera-result" class="ai-search-result" style="display: none;">
+                    <!-- 拍照识别结果将在这里显示 -->
+                </div>
+            </div>
+
             <div class="filter-controls">
                 <div class="filter-group">
                     <label>年级：</label>
@@ -494,6 +507,7 @@
     <script src="js/rule-engine.js"></script>
     <script src="js/ai-review.js"></script>
     <script src="js/import-handler.js"></script>
+    <script src="js/camera.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
