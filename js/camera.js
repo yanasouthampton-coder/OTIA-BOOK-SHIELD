@@ -134,13 +134,25 @@ class CameraRecognition {
     searchAndAnalyze(title) {
         const resultDiv = document.getElementById('camera-result');
         
-        const localBook = db.getBooks().find(b => b.title.includes(title));
+        const localBook = db.getBooks().find(b => b.title.includes(title) || title.includes(b.title));
         
         if (localBook) {
             const analysis = aiReviewEngine.analyzeBook(localBook);
             this.displayResult(localBook, analysis, resultDiv);
         } else {
-            const knownBook = window.app ? window.app.getKnownBook(title) : { title, author: '未知', category: '未分类', description: '暂无详细信息', difficulty: '中等' };
+            let knownBook;
+            try {
+                knownBook = (typeof window !== 'undefined' && window.app && window.app.getKnownBook) 
+                    ? window.app.getKnownBook(title) 
+                    : null;
+            } catch(e) {
+                knownBook = null;
+            }
+            
+            if (!knownBook) {
+                knownBook = { title, author: '未知', category: '未分类', description: '暂无详细信息', overallDifficulty: '中等' };
+            }
+            
             const analysis = aiReviewEngine.analyzeBook(knownBook);
             this.displayResult(knownBook, analysis, resultDiv);
         }

@@ -11,6 +11,10 @@ class Database {
             const savedData = localStorage.getItem('bookReviewSystem');
             if (savedData) {
                 this.data = JSON.parse(savedData);
+                // 验证数据完整性
+                if (!this.data.books || !Array.isArray(this.data.books)) {
+                    throw new Error('数据格式不正确');
+                }
             } else {
                 // 使用内置默认数据
                 this.data = this.getDefaultData();
@@ -82,9 +86,30 @@ class Database {
     // 保存数据
     saveData() {
         try {
-            localStorage.setItem('bookReviewSystem', JSON.stringify(this.data));
+            const jsonStr = JSON.stringify(this.data);
+            localStorage.setItem('bookReviewSystem', jsonStr);
+            return true;
         } catch (error) {
             console.error('保存数据失败:', error);
+            if (error.name === 'QuotaExceededError' || error.code === 22) {
+                // 数据量过大，尝试精简保存（去掉章节的冗长描述）
+                try {
+                    const reduced = JSON.parse(JSON.stringify(this.data));
+                    reduced.chapters = reduced.chapters.map(ch => ({
+                        ...ch,
+                        summary: (ch.summary || '').substring(0, 50),
+                        overLevelDescription: (ch.overLevelDescription || '').substring(0, 50)
+                    }));
+                    const jsonStr = JSON.stringify(reduced);
+                    localStorage.setItem('bookReviewSystem', jsonStr);
+                    console.warn('数据量过大，已精简章节描述后保存');
+                    return true;
+                } catch (e2) {
+                    alert('⚠️ 存储空间不足！数据已加载但无法保存到本地。\n\n建议：\n1. 导出当前数据备份\n2. 清除浏览器缓存后重新导入\n\n错误详情：' + e2.message);
+                    return false;
+                }
+            }
+            return false;
         }
     }
 
@@ -292,6 +317,50 @@ class Database {
         
         this.updateBook(bookId, { reviewStatus: status });
         return status;
+    }
+
+    // 导出数据备份
+    exportBackup() {
+        const dataStr = JSON.stringify(this.data, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `书盾数据备份_${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+    }
+
+    // 导入数据备份
+    importBackup(jsonStr) {
+        try {
+            const imported = JSON.parse(jsonStr);
+            if (imported.books && Array.isArray(imported.books)) {
+                this.data = imported;
+                this.saveData();
+                return true;
+            }
+            return false;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    // 获取存储使用情况
+    getStorageUsage() {
+        try {
+            const dataStr = localStorage.getItem('bookReviewSystem') || '';
+            const usedBytes = new Blob([dataStr]).size;
+            const maxBytes = 5 * 1024 * 1024; // 5MB
+            return {
+                used: usedBytes,
+                max: maxBytes,
+                percentage: Math.round((usedBytes / maxBytes) * 100),
+                books: this.data.books.length
+            };
+        } catch (e) {
+            return { used: 0, max: 5 * 1024 * 1024, percentage: 0, books: this.data.books.length };
+        }
     }
 }
 
