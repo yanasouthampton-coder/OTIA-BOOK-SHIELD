@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTIA书盾 - 初中生书目审核系统</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <div class="header-icon">📚</div>
+                <div class="header-text">
+                    <h1 class="header-title">
+                        <span class="title-cn">OTIA书盾</span>
+                        <span class="title-en">OTIA BOOK SHIELD</span>
+                    </h1>
+                    <p class="header-subtitle">
+                        <span class="subtitle-cn">初中生阅读书目筛选 · 超纲内容检测</span>
+                        <span class="subtitle-en">Middle School Reading List Screening & Content Review</span>
+                    </p>
+                </div>
+            </div>
+        </header>
+
+        <nav class="nav-tabs">
+            <button class="nav-tab active" data-tab="books">书目管理</button>
+            <button class="nav-tab" data-tab="import">导入清单</button>
+            <button class="nav-tab" data-tab="chapters">章节审核</button>
+            <button class="nav-tab" data-tab="rules">规则引擎</button>
+            <button class="nav-tab" data-tab="filter">筛选导出</button>
+        </nav>
+
+        <!-- 书目管理 -->
+        <div id="books-tab" class="tab-content active">
+            <div class="section-header">
+                <h2>书目列表</h2>
+                <div class="actions">
+                    <button id="add-book-btn" class="btn btn-primary">+ 添加书目</button>
+                    <button id="ai-review-btn" class="btn btn-info">🤖 AI智能审核</button>
+                    <button id="batch-evaluate-btn" class="btn btn-success">✓ 批量评估</button>
+                </div>
+            </div>
+            
+            <div class="filter-bar">
+                <select id="book-grade-filter">
+                    <option value="all">全部年级</option>
+                    <option value="6">六年级</option>
+                    <option value="7">七年级</option>
+                    <option value="8">八年级</option>
+                    <option value="9">九年级</option>
+                </select>
+                <select id="book-status-filter">
+                    <option value="all">全部状态</option>
+                    <option value="待审核">待审核</option>
+                    <option value="审核中">审核中</option>
+                    <option value="已通过">已通过</option>
+                    <option value="有超纲">有超纲</option>
+                </select>
+                <input type="text" id="book-search" placeholder="搜索书名/作者...">
+            </div>
+
+            <div id="books-list" class="books-list">
+                <!-- 书目将通过JavaScript动态生成 -->
+            </div>
+        </div>
+
+        <!-- 导入清单 -->
+        <div id="import-tab" class="tab-content">
+            <div class="section-header">
+                <h2>导入Excel清单</h2>
+                <div class="actions">
+                    <button id="download-template-btn" class="btn btn-info">下载模板</button>
+                </div>
+            </div>
+
+            <div class="import-section">
+                <div class="import-instructions">
+                    <h3>导入说明</h3>
+                    <p>支持您现有的图书馆系统导出格式，自动识别以下列：</p>
+                    <ul>
+                        <li><strong>书名</strong>（必填）- 书籍名称</li>
+                        <li><strong>作者</strong>（必填）- 作者姓名</li>
+                        <li><strong>ISBN</strong>（选填）- ISBN编号</li>
+                        <li><strong>分类</strong>（选填）- 书籍分类</li>
+                        <li><strong>出版社</strong>（选填）- 出版社名称</li>
+                        <li><strong>简介</strong>（选填）- 书籍简介</li>
+                        <li><strong>页数</strong>（选填）- 页数信息</li>
+                    </ul>
+                    <p class="tip">提示：导入时可选择默认年级，导入后再逐本调整适用年级</p>
+                </div>
+
+                <div class="import-upload">
+                    <h3>上传文件</h3>
+                    <div class="upload-area" id="upload-area">
+                        <input type="file" id="excel-file-input" accept=".xlsx,.xls,.csv" hidden>
+                        <div class="upload-placeholder">
+                            <div class="upload-icon">📁</div>
+                            <p class="upload-title">点击或拖拽文件到此处上传</p>
+                            <p class="upload-hint">支持格式：.xlsx, .xls, .csv</p>
+                        </div>
+                    </div>
+                    <div class="upload-actions">
+                        <button id="start-import-btn" class="btn btn-primary" disabled>⬆ 开始导入</button>
+                        <button id="clear-import-btn" class="btn btn-secondary">✖ 清除</button>
+                    </div>
+                    <div class="upload-tip" id="upload-tip" style="display: none;">
+                        ✅ 文件已识别，请点击"开始导入"按钮进行下一步
+                    </div>
+                </div>
+
+                <div class="import-preview" id="import-preview" style="display: none;">
+                    <h3>导入预览</h3>
+                    <div class="preview-info">
+                        <p><strong>文件名：</strong><span id="preview-filename"></span></p>
+                        <p><strong>总行数：</strong><span id="preview-total"></span></p>
+                        <p><strong>有效数据：</strong><span id="preview-valid"></span></p>
+                        <p><strong>重复数据：</strong><span id="preview-duplicate"></span></p>
+                    </div>
+                    <div class="preview-table-container">
+                        <table id="preview-table" class="preview-table">
+                            <thead>
+                                <tr>
+                                    <th>序号</th>
+                                    <th>书名</th>
+                                    <th>作者</th>
+                                    <th>年级</th>
+                                    <th>分类</th>
+                                    <th>难度</th>
+                                    <th>状态</th>
+                                </tr>
+                            </thead>
+                            <tbody id="preview-tbody">
+                                <!-- 预览数据将在这里显示 -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="import-actions">
+                        <button id="confirm-import-btn" class="btn btn-success">确认导入</button>
+                        <button id="cancel-import-btn" class="btn btn-secondary">取消</button>
+                    </div>
+                </div>
+
+                <div class="import-result" id="import-result" style="display: none;">
+                    <h3>导入结果</h3>
+                    <div class="result-info">
+                        <p><strong>成功导入：</strong><span id="result-success">0</span> 本</p>
+                        <p><strong>跳过重复：</strong><span id="result-skip">0</span> 本</p>
+                        <p><strong>导入失败：</strong><span id="result-fail">0</span> 本</p>
+                    </div>
+                    <div class="result-details" id="result-details">
+                        <!-- 导入详情将在这里显示 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 章节审核 -->
+        <div id="chapters-tab" class="tab-content">
+            <div class="section-header">
+                <h2>章节审核</h2>
+                <div class="actions">
+                    <button id="batch-review-btn" class="btn btn-primary">批量审核</button>
+                    <button id="export-review-btn" class="btn btn-success">导出审核结果</button>
+                </div>
+            </div>
+
+            <div class="chapter-filter">
+                <select id="chapter-book-filter">
+                    <option value="all">全部书目</option>
+                </select>
+                <select id="chapter-status-filter">
+                    <option value="all">全部状态</option>
+                    <option value="待审核">待审核</option>
+                    <option value="已审核">已审核</option>
+                    <option value="有超纲">有超纲</option>
+                </select>
+            </div>
+
+            <div id="chapters-list" class="chapters-list">
+                <!-- 章节将通过JavaScript动态生成 -->
+            </div>
+        </div>
+
+        <!-- 规则引擎 -->
+        <div id="rules-tab" class="tab-content">
+            <div class="section-header">
+                <h2>规则引擎</h2>
+                <div class="actions">
+                    <button id="add-rule-btn" class="btn btn-primary">添加规则</button>
+                    <button id="test-rule-btn" class="btn btn-success">测试规则</button>
+                </div>
+            </div>
+
+            <div id="rules-list" class="rules-list">
+                <!-- 规则将通过JavaScript动态生成 -->
+            </div>
+
+            <div class="rule-test-section">
+                <h3>规则测试</h3>
+                <textarea id="test-content" placeholder="输入要测试的文本内容..."></textarea>
+                <div class="rule-test-result" id="rule-test-result">
+                    <!-- 测试结果将在这里显示 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 筛选导出 -->
+        <div id="filter-tab" class="tab-content">
+            <div class="section-header">
+                <h2>筛选导出</h2>
+                <div class="actions">
+                    <button id="export-safe-btn" class="btn btn-success">导出安全书目</button>
+                    <button id="export-warning-btn" class="btn btn-warning">导出超纲书目</button>
+                </div>
+            </div>
+
+            <!-- AI搜书功能 -->
+            <div class="ai-search-section">
+                <h3>🔍 AI搜书 - 一键分析任意书籍</h3>
+                <p class="ai-search-desc">输入书名，AI自动分析是否适合12-15岁初中生阅读</p>
+                <div class="ai-search-box">
+                    <input type="text" id="ai-search-input" placeholder="请输入书名，如：三体、活着、围城...">
+                    <button id="ai-search-btn" class="btn btn-primary">🤖 AI分析</button>
+                </div>
+                <div id="ai-search-result" class="ai-search-result" style="display: none;">
+                    <!-- 搜索结果将在这里显示 -->
+                </div>
+            </div>
+
+            <div class="filter-controls">
+                <div class="filter-group">
+                    <label>年级：</label>
+                    <select id="export-grade">
+                        <option value="all">全部年级</option>
+                        <option value="6">六年级</option>
+                        <option value="7">七年级</option>
+                        <option value="8">八年级</option>
+                        <option value="9">九年级</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>难度：</label>
+                    <select id="export-difficulty">
+                        <option value="all">全部难度</option>
+                        <option value="较易">较易</option>
+                        <option value="中等">中等</option>
+                        <option value="较难">较难</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>审核状态：</label>
+                    <select id="export-status">
+                        <option value="all">全部状态</option>
+                        <option value="已通过">已通过</option>
+                        <option value="有超纲">有超纲</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="export-preview" class="export-preview">
+                <!-- 导出预览将在这里显示 -->
+            </div>
+        </div>
+
+        <!-- 添加/编辑书目弹窗 -->
+        <div id="book-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modal-title">添加书目</h3>
+                    <button class="close-btn" id="close-book-modal">&times;</button>
+                </div>
+                <form id="book-form">
+                    <input type="hidden" id="book-id">
+                    <div class="form-group">
+                        <label>书名：</label>
+                        <input type="text" id="book-title" required>
+                    </div>
+                    <div class="form-group">
+                        <label>作者：</label>
+                        <input type="text" id="book-author" required>
+                    </div>
+                    <div class="form-group">
+                        <label>分类：</label>
+                        <select id="book-category">
+                            <option value="文学">文学</option>
+                            <option value="科幻">科幻</option>
+                            <option value="奇幻">奇幻</option>
+                            <option value="科普">科普</option>
+                            <option value="纪实">纪实</option>
+                            <option value="古典小说">古典小说</option>
+                            <option value="散文集">散文集</option>
+                            <option value="诗歌集">诗歌集</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>出版社：</label>
+                        <input type="text" id="book-publisher">
+                    </div>
+                    <div class="form-group">
+                        <label>ISBN：</label>
+                        <input type="text" id="book-isbn">
+                    </div>
+                    <div class="form-group">
+                        <label>简介：</label>
+                        <textarea id="book-description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>总章节数：</label>
+                        <input type="number" id="book-chapters" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>适用年级：</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" name="grade" value="6"> 六年级</label>
+                            <label><input type="checkbox" name="grade" value="7"> 七年级</label>
+                            <label><input type="checkbox" name="grade" value="8"> 八年级</label>
+                            <label><input type="checkbox" name="grade" value="9"> 九年级</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>总体难度：</label>
+                        <select id="book-difficulty">
+                            <option value="较易">较易</option>
+                            <option value="中等">中等</option>
+                            <option value="较难">较难</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">保存</button>
+                        <button type="button" class="btn btn-secondary" id="cancel-book">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 添加/编辑章节弹窗 -->
+        <div id="chapter-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="chapter-modal-title">编辑章节</h3>
+                    <button class="close-btn" id="close-chapter-modal">&times;</button>
+                </div>
+                <form id="chapter-form">
+                    <input type="hidden" id="chapter-id">
+                    <input type="hidden" id="chapter-book-id">
+                    <div class="form-group">
+                        <label>章节号：</label>
+                        <input type="number" id="chapter-number" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label>章节标题：</label>
+                        <input type="text" id="chapter-title" required>
+                    </div>
+                    <div class="form-group">
+                        <label>内容摘要：</label>
+                        <textarea id="chapter-summary" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>关键词（用逗号分隔）：</label>
+                        <input type="text" id="chapter-keywords">
+                    </div>
+                    <div class="form-group">
+                        <label>评估难度：</label>
+                        <select id="chapter-difficulty">
+                            <option value="较易">较易</option>
+                            <option value="中等">中等</option>
+                            <option value="较难">较难</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>是否超纲：</label>
+                        <input type="checkbox" id="chapter-overlevel">
+                    </div>
+                    <div class="form-group" id="overlevel-type-group" style="display: none;">
+                        <label>超纲类型：</label>
+                        <select id="chapter-overlevel-type">
+                            <option value="政治敏感">政治敏感</option>
+                            <option value="暴力血腥">暴力血腥</option>
+                            <option value="性教育">性教育</option>
+                            <option value="文言文过难">文言文过难</option>
+                            <option value="专业术语过多">专业术语过多</option>
+                            <option value="封建迷信">封建迷信</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="overlevel-desc-group" style="display: none;">
+                        <label>超纲描述：</label>
+                        <textarea id="chapter-overlevel-desc" rows="2"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>审核备注：</label>
+                        <textarea id="chapter-notes" rows="2"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">保存</button>
+                        <button type="button" class="btn btn-secondary" id="cancel-chapter">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 添加规则弹窗 -->
+        <div id="rule-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="rule-modal-title">添加规则</h3>
+                    <button class="close-btn" id="close-rule-modal">&times;</button>
+                </div>
+                <form id="rule-form">
+                    <input type="hidden" id="rule-id">
+                    <div class="form-group">
+                        <label>规则名称：</label>
+                        <input type="text" id="rule-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>规则描述：</label>
+                        <textarea id="rule-description" rows="2"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>关键词（用逗号分隔）：</label>
+                        <input type="text" id="rule-keywords" required>
+                    </div>
+                    <div class="form-group">
+                        <label>风险等级：</label>
+                        <select id="rule-risk">
+                            <option value="高">高</option>
+                            <option value="中">中</option>
+                            <option value="低">低</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>是否启用：</label>
+                        <input type="checkbox" id="rule-active" checked>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">保存</button>
+                        <button type="button" class="btn btn-secondary" id="cancel-rule">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 列映射弹窗 -->
+        <div id="mapping-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>列映射设置</h3>
+                    <button class="close-btn" id="close-mapping-modal">&times;</button>
+                </div>
+                <div class="mapping-content">
+                    <p>请将Excel列映射到系统字段：</p>
+                    <div id="mapping-selects" class="mapping-form">
+                        <!-- 动态生成映射选项 -->
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button id="confirm-mapping-btn" class="btn btn-primary">✓ 确认映射</button>
+                    <button id="cancel-mapping-btn" class="btn btn-secondary">✖ 取消</button>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>OTIA书盾 | 初中生阅读书目智能筛选系统</p>
+        </footer>
+
+        <!-- AI审核结果弹窗 -->
+        <div id="ai-review-modal" class="modal">
+            <div class="modal-content modal-large" style="max-width:95%;width:1400px;">
+                <div class="modal-header">
+                    <h3>🤖 AI智能审核结果</h3>
+                    <button class="close-btn" id="close-ai-modal">&times;</button>
+                </div>
+                <div class="ai-review-content">
+                    <div class="ai-review-summary" id="ai-review-summary">
+                        <!-- 汇总信息 -->
+                    </div>
+                    <div class="ai-review-list" id="ai-review-list">
+                        <!-- 审核详情列表 -->
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button id="export-ai-result-btn" class="btn btn-success">导出审核报告</button>
+                    <button id="close-ai-btn" class="btn btn-secondary">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="js/database.js"></script>
+    <script src="js/rule-engine.js"></script>
+    <script src="js/ai-review.js"></script>
+    <script src="js/import-handler.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

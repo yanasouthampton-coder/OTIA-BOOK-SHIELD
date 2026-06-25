@@ -1,0 +1,296 @@
+{
+  "books": [
+    {
+      "id": 1,
+      "title": "朝花夕拾",
+      "author": "鲁迅",
+      "category": "散文集",
+      "publisher": "人民文学出版社",
+      "isbn": "978-7-0200-0289-1",
+      "description": "鲁迅的回忆性散文集，记录了作者从童年到青年的生活经历。",
+      "totalChapters": 10,
+      "applicableGrades": [7],
+      "overallDifficulty": "中等",
+      "reviewStatus": "待审核",
+      "createdAt": "2024-01-01",
+      "updatedAt": "2024-01-01"
+    },
+    {
+      "id": 2,
+      "title": "西游记",
+      "author": "吴承恩",
+      "category": "古典小说",
+      "publisher": "人民文学出版社",
+      "isbn": "978-7-0200-0289-2",
+      "description": "中国古典四大名著之一，讲述唐僧师徒西天取经的故事。",
+      "totalChapters": 100,
+      "applicableGrades": [7, 8],
+      "overallDifficulty": "中等",
+      "reviewStatus": "待审核",
+      "createdAt": "2024-01-01",
+      "updatedAt": "2024-01-01"
+    },
+    {
+      "id": 3,
+      "title": "骆驼祥子",
+      "author": "老舍",
+      "category": "长篇小说",
+      "publisher": "人民文学出版社",
+      "isbn": "978-7-0200-0289-3",
+      "description": "老舍代表作，讲述北平人力车夫祥子的悲剧命运。",
+      "totalChapters": 24,
+      "applicableGrades": [8],
+      "overallDifficulty": "中等",
+      "reviewStatus": "待审核",
+      "createdAt": "2024-01-01",
+      "updatedAt": "2024-01-01"
+    },
+    {
+      "id": 4,
+      "title": "海底两万里",
+      "author": "凡尔纳",
+      "category": "科幻小说",
+      "publisher": "译林出版社",
+      "isbn": "978-7-0200-0289-4",
+      "description": "法国科幻小说家凡尔纳的代表作，讲述海底探险的故事。",
+      "totalChapters": 47,
+      "applicableGrades": [7, 8],
+      "overallDifficulty": "中等",
+      "reviewStatus": "待审核",
+      "createdAt": "2024-01-01",
+      "updatedAt": "2024-01-01"
+    },
+    {
+      "id": 5,
+      "title": "红星照耀中国",
+      "author": "埃德加·斯诺",
+      "category": "纪实文学",
+      "publisher": "人民文学出版社",
+      "isbn": "978-7-0200-0289-5",
+      "description": "美国记者斯诺记录中国革命的纪实作品。",
+      "totalChapters": 12,
+      "applicableGrades": [8, 9],
+      "overallDifficulty": "较难",
+      "reviewStatus": "待审核",
+      "createdAt": "2024-01-01",
+      "updatedAt": "2024-01-01"
+    }
+  ],
+  "chapters": [
+    {
+      "id": 1,
+      "bookId": 1,
+      "chapterNumber": 1,
+      "title": "狗·猫·鼠",
+      "summary": "描述作者对猫的厌恶和对鼠的同情",
+      "keywords": ["猫", "鼠", "童年"],
+      "estimatedDifficulty": "较易",
+      "isOverLevel": false,
+      "overLevelType": null,
+      "overLevelDescription": null,
+      "reviewer": null,
+      "reviewStatus": "待审核",
+      "reviewNotes": null,
+      "createdAt": "2024-01-01",
+      "updatedAt": "2024-01-01"
+    },
+    {
+      "id": 2,
+      "bookId": 1,
+      "chapterNumber": 2,
+      "title": "阿长与《山海经》",
+      "summary": "回忆保姆长妈妈，讲述她为作者购买《山海经》的故事",
+      "keywords": ["长妈妈", "山海经", "童年"],
+      "estimatedDifficulty": "较易",
+      "isOverLevel": false,
+      "overLevelType": null,
+      "overLevelDescription": null,
+      "reviewer": null,
+      "reviewStatus": "待审核",
+      "reviewNotes": null,
+      "createdAt": "2024-01-01",
+      "updatedAt": "2024-01-01"
+    },
+    {
+      "id": 3,
+      "bookId": 1,
+      "chapterNumber": 3,
+      "title": "二十四孝图",
+      "summary": "批判封建孝道，讲述二十四孝图中的故事",
+      "keywords": ["孝道", "封建", "批判"],
+      "estimatedDifficulty": "中等",
+      "isOverLevel": false,
+      "overLevelType": null,
+      "overLevelDescription": null,
+      "reviewer": null,
+      "reviewStatus": "待审核",
+      "reviewNotes": null,
+      "createdAt": "2024-01-01",
+      "updatedAt": "2024-01-01"
+    },
+    {
+      "id": 4,
+      "bookId": 1,
+      "chapterNumber": 4,
+      "title": "五猖会",
+      "summary": "描述作者儿时盼望观看五猖会的经历",
+      "keywords": ["五猖会", "童年", "民俗"],
+      "estimatedDifficulty": "较易",
+      "isOverLevel": false,
+      "overLevelType": null,
+      "overLevelDescription": null,
+      "reviewer": null,
+      "reviewStatus": "待审核",
+      "reviewNotes": null,
+      "createdAt": "2024-01-01",
+      "updatedAt": "2024-01-01"
+    },
+    {
+      "id": 5,
+      "bookId": 1,
+      "chapterNumber": 5,
+      "title": "无常",
+      "summary": "描述迎神赛会中的无常形象",
+      "keywords": ["无常", "民俗", "鬼神"],
+      "estimatedDifficulty": "中等",
+      "isOverLevel": false,
+      "overLevelType": null,
+      "overLevelDescription": null,
+      "reviewer": null,
+      "reviewStatus": "待审核",
+      "reviewNotes": null,
+      "createdAt": "2024-01-01",
+      "updatedAt": "2024-01-01"
+    }
+  ],
+  "rules": [
+    {
+      "id": 1,
+      "name": "政治敏感内容",
+      "description": "涉及政治敏感话题、历史事件的不当描述",
+      "keywords": ["政治", "革命", "反动", "右派", "文革"],
+      "gradeRestrictions": {
+        "6": "禁止",
+        "7": "需审核",
+        "8": "需审核",
+        "9": "允许"
+      },
+      "riskLevel": "高",
+      "isActive": true
+    },
+    {
+      "id": 2,
+      "name": "暴力血腥内容",
+      "description": "涉及暴力、血腥、恐怖场景",
+      "keywords": ["杀", "血", "死", "暴力", "恐怖", "鬼"],
+      "gradeRestrictions": {
+        "6": "禁止",
+        "7": "需审核",
+        "8": "需审核",
+        "9": "需审核"
+      },
+      "riskLevel": "高",
+      "isActive": true
+    },
+    {
+      "id": 3,
+      "name": "性教育相关内容",
+      "description": "涉及性教育、成人情感内容",
+      "keywords": ["性", "爱情", "婚姻", "情欲", "床"],
+      "gradeRestrictions": {
+        "6": "禁止",
+        "7": "禁止",
+        "8": "需审核",
+        "9": "需审核"
+      },
+      "riskLevel": "中",
+      "isActive": true
+    },
+    {
+      "id": 4,
+      "name": "文言文难度",
+      "description": "涉及文言文、古文内容，可能超出学生理解能力",
+      "keywords": ["文言", "古文", "之乎者也", "矣", "兮"],
+      "gradeRestrictions": {
+        "6": "需审核",
+        "7": "需审核",
+        "8": "允许",
+        "9": "允许"
+      },
+      "riskLevel": "中",
+      "isActive": true
+    },
+    {
+      "id": 5,
+      "name": "专业术语密度",
+      "description": "涉及专业术语、学术内容，可能超出学生理解能力",
+      "keywords": ["理论", "主义", "哲学", "逻辑", "辩证"],
+      "gradeRestrictions": {
+        "6": "禁止",
+        "7": "需审核",
+        "8": "需审核",
+        "9": "允许"
+      },
+      "riskLevel": "中",
+      "isActive": true
+    },
+    {
+      "id": 6,
+      "name": "封建迷信内容",
+      "description": "涉及封建迷信、鬼神、命运等内容",
+      "keywords": ["迷信", "命运", "风水", "算命", "鬼神"],
+      "gradeRestrictions": {
+        "6": "禁止",
+        "7": "需审核",
+        "8": "需审核",
+        "9": "需审核"
+      },
+      "riskLevel": "中",
+      "isActive": true
+    }
+  ],
+  "overLevelTypes": [
+    {
+      "id": 1,
+      "name": "政治敏感",
+      "description": "涉及政治敏感内容",
+      "riskLevel": "高"
+    },
+    {
+      "id": 2,
+      "name": "暴力血腥",
+      "description": "涉及暴力、血腥内容",
+      "riskLevel": "高"
+    },
+    {
+      "id": 3,
+      "name": "性教育",
+      "description": "涉及性教育、成人情感内容",
+      "riskLevel": "中"
+    },
+    {
+      "id": 4,
+      "name": "文言文过难",
+      "description": "文言文难度超出学生理解能力",
+      "riskLevel": "中"
+    },
+    {
+      "id": 5,
+      "name": "专业术语过多",
+      "description": "专业术语密度过高",
+      "riskLevel": "中"
+    },
+    {
+      "id": 6,
+      "name": "封建迷信",
+      "description": "涉及封建迷信内容",
+      "riskLevel": "中"
+    },
+    {
+      "id": 7,
+      "name": "其他",
+      "description": "其他类型的超纲内容",
+      "riskLevel": "低"
+    }
+  ]
+}
