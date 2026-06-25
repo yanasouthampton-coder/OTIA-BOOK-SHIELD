@@ -1,29 +1,74 @@
-// 数据库操作
+// 数据库操作 - 使用IndexedDB支持大量数据
 class Database {
     constructor() {
         this.data = null;
-        this.loadData();
+        this.db = null;
+        this.dbName = 'BookReviewSystemDB';
+        this.storeName = 'appData';
+        this.ready = this.initDB();
+    }
+
+    // 初始化IndexedDB
+    initDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.dbName, 1);
+            
+            request.onerror = () => {
+                console.error('IndexedDB打开失败:', request.error);
+                this.data = this.getDefaultData();
+                resolve();
+            };
+            
+            request.onsuccess = () => {
+                this.db = request.result;
+                this.loadData().then(resolve).catch(() => {
+                    this.data = this.getDefaultData();
+                    resolve();
+                });
+            };
+            
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains(this.storeName)) {
+                    db.createObjectStore(this.storeName);
+                }
+            };
+        });
     }
 
     // 加载数据
     loadData() {
-        try {
-            const savedData = localStorage.getItem('bookReviewSystem');
-            if (savedData) {
-                this.data = JSON.parse(savedData);
-                // 验证数据完整性
-                if (!this.data.books || !Array.isArray(this.data.books)) {
-                    throw new Error('数据格式不正确');
-                }
-            } else {
-                // 使用内置默认数据
+        return new Promise((resolve, reject) => {
+            if (!this.db) {
                 this.data = this.getDefaultData();
-                this.saveData();
+                resolve();
+                return;
             }
-        } catch (error) {
-            console.error('加载数据失败:', error);
-            this.data = this.getDefaultData();
-        }
+            
+            const transaction = this.db.transaction([this.storeName], 'readonly');
+            const store = transaction.objectStore(this.storeName);
+            const request = store.get('mainData');
+            
+            request.onsuccess = () => {
+                if (request.result) {
+                    this.data = request.result;
+                    // 验证数据完整性
+                    if (!this.data.books || !Array.isArray(this.data.books)) {
+                        throw new Error('数据格式不正确');
+                    }
+                } else {
+                    this.data = this.getDefaultData();
+                    this.saveData();
+                }
+                resolve();
+            };
+            
+            request.onerror = () => {
+                console.error('读取数据失败:', request.error);
+                this.data = this.getDefaultData();
+                resolve();
+            };
+        });
     }
 
     // 获取内置默认数据
@@ -83,34 +128,34 @@ class Database {
         };
     }
 
-    // 保存数据
+    // 保存数据到IndexedDB
     saveData() {
-        try {
-            const jsonStr = JSON.stringify(this.data);
-            localStorage.setItem('bookReviewSystem', jsonStr);
-            return true;
-        } catch (error) {
-            console.error('保存数据失败:', error);
-            if (error.name === 'QuotaExceededError' || error.code === 22) {
-                // 数据量过大，尝试精简保存（去掉章节的冗长描述）
-                try {
-                    const reduced = JSON.parse(JSON.stringify(this.data));
-                    reduced.chapters = reduced.chapters.map(ch => ({
-                        ...ch,
-                        summary: (ch.summary || '').substring(0, 50),
-                        overLevelDescription: (ch.overLevelDescription || '').substring(0, 50)
-                    }));
-                    const jsonStr = JSON.stringify(reduced);
-                    localStorage.setItem('bookReviewSystem', jsonStr);
-                    console.warn('数据量过大，已精简章节描述后保存');
-                    return true;
-                } catch (e2) {
-                    alert('⚠️ 存储空间不足！数据已加载但无法保存到本地。\n\n建议：\n1. 导出当前数据备份\n2. 清除浏览器缓存后重新导入\n\n错误详情：' + e2.message);
-                    return false;
-                }
+        return new Promise((resolve, reject) => {
+            if (!this.db) {
+                resolve();
+                return;
             }
-            return false;
-        }
+            
+            try {
+                const transaction = this.db.transaction([this.storeName], 'readwrite');
+                const store = transaction.objectStore(this.storeName);
+                const request = store.put(this.data, 'mainData');
+                
+                request.onsuccess = () => resolve(true);
+                request.onerror = () => {
+                    console.error('保存数据失败:', request.error);
+                    resolve(false);
+                };
+            } catch (error) {
+                console.error('保存数据异常:', error);
+                resolve(false);
+            }
+        });
+    }
+
+    // 同步保存（兼容旧代码）
+    saveDataSync() {
+        this.saveData();
     }
 
     // 导入默认数据
@@ -121,7 +166,7 @@ class Database {
 
     // 获取所有书目
     getBooks() {
-        return this.data.books;
+        return this.data ? this.data.books : [];
     }
 
     // 根据ID获取书目
@@ -168,7 +213,7 @@ class Database {
 
     // 获取所有章节
     getChapters() {
-        return this.data.chapters;
+        return this.data ? this.data.chapters : [];
     }
 
     // 根据书目ID获取章节
@@ -218,7 +263,7 @@ class Database {
 
     // 获取所有规则
     getRules() {
-        return this.data.rules;
+        return this.data ? this.data.rules : [];
     }
 
     // 根据ID获取规则
@@ -273,15 +318,11 @@ class Database {
     // 获取指定年级的安全书目
     getSafeBooksForGrade(grade) {
         return this.data.books.filter(book => {
-            // 检查书目是否适用于该年级
             if (!book.applicableGrades.includes(parseInt(grade))) {
                 return false;
             }
-
-            // 检查是否有超纲章节
             const chapters = this.getChaptersByBookId(book.id);
             const hasOverLevel = chapters.some(chapter => chapter.isOverLevel);
-            
             return !hasOverLevel;
         });
     }
@@ -289,15 +330,11 @@ class Database {
     // 获取指定年级的超纲书目
     getOverLevelBooksForGrade(grade) {
         return this.data.books.filter(book => {
-            // 检查书目是否适用于该年级
             if (!book.applicableGrades.includes(parseInt(grade))) {
                 return false;
             }
-
-            // 检查是否有超纲章节
             const chapters = this.getChaptersByBookId(book.id);
             const overLevelChapters = chapters.filter(chapter => chapter.isOverLevel);
-            
             return overLevelChapters.length > 0;
         });
     }
@@ -347,20 +384,19 @@ class Database {
     }
 
     // 获取存储使用情况
-    getStorageUsage() {
+    async getStorageUsage() {
         try {
-            const dataStr = localStorage.getItem('bookReviewSystem') || '';
-            const usedBytes = new Blob([dataStr]).size;
-            const maxBytes = 5 * 1024 * 1024; // 5MB
-            return {
-                used: usedBytes,
-                max: maxBytes,
-                percentage: Math.round((usedBytes / maxBytes) * 100),
-                books: this.data.books.length
-            };
-        } catch (e) {
-            return { used: 0, max: 5 * 1024 * 1024, percentage: 0, books: this.data.books.length };
-        }
+            if (navigator.storage && navigator.storage.estimate) {
+                const estimate = await navigator.storage.estimate();
+                return {
+                    used: estimate.usage || 0,
+                    max: estimate.quota || 0,
+                    percentage: estimate.quota ? Math.round((estimate.usage / estimate.quota) * 100) : 0,
+                    books: this.data ? this.data.books.length : 0
+                };
+            }
+        } catch (e) {}
+        return { used: 0, max: 0, percentage: 0, books: this.data ? this.data.books.length : 0 };
     }
 }
 

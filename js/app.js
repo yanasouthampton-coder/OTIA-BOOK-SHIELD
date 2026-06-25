@@ -909,4 +909,10 @@ class App {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => { window.app = new App(); window.importHandler = new ImportHandler(db); });
+// 等待IndexedDB就绪后再初始化应用
+document.addEventListener('DOMContentLoaded', () => {
+    db.ready.then(() => {
+        window.app = new App();
+        window.importHandler = new ImportHandler(db);
+    });
+});
