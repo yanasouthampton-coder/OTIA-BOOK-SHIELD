@@ -437,7 +437,7 @@ class App {
         if (!books.length) { alert('请先导入书目数据'); return; }
         const sl = document.getElementById('ai-review-summary');
         const ll = document.getElementById('ai-review-list');
-        sl.innerHTML = '<p style="text-align:center;grid-column:1/-1;">🤖 AI正在分析 ' + books.length + ' 本书，请稍候...</p>';
+        sl.innerHTML = '<p style="text-align:center;grid-column:1/-1;">🤖 AI正在严格审核 ' + books.length + ' 本书，请稍候...</p>';
         ll.innerHTML = '';
         this.showModal('ai-review-modal');
 
@@ -452,15 +452,16 @@ class App {
             <div class="ai-summary-item"><div class="number">${report.total}</div><div class="label">总计书目</div></div>
             <div class="ai-summary-item"><div class="number" style="color:#28a745">${report.suitable}</div><div class="label">适合阅读</div></div>
             <div class="ai-summary-item"><div class="number" style="color:#ffc107">${report.needsReview}</div><div class="label">需要审核</div></div>
-            <div class="ai-summary-item"><div class="number" style="color:#dc3545">${report.notSuitable}</div><div class="label">不建议</div></div>`;
+            <div class="ai-summary-item"><div class="number" style="color:#dc3545">${report.notSuitable}</div><div class="label">不建议</div></div>
+            <div class="ai-summary-item"><div class="number" style="color:#000">${report.banned}</div><div class="label">禁止</div></div>`;
 
-        if (report.warnings.length > 0) {
+        if (report.severeWarnings.length > 0) {
             sl.innerHTML += `
-                <div style="grid-column:1/-1;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px;margin-top:12px;">
-                    <h4 style="margin:0 0 8px;color:#856404;">⚠️ 发现 ${report.warnings.length} 个风险警告</h4>
-                    <ul style="margin:0;padding-left:20px;color:#856404;font-size:13px;">
-                        ${report.warnings.slice(0, 20).map(w => `<li>${w}</li>`).join('')}
-                        ${report.warnings.length > 20 ? `<li>...还有 ${report.warnings.length - 20} 个警告</li>` : ''}
+                <div style="grid-column:1/-1;background:#f8d7da;border:1px solid #dc3545;border-radius:8px;padding:12px;margin-top:12px;">
+                    <h4 style="margin:0 0 8px;color:#721c24;">🚨 严重风险警告：${report.severeWarnings.length} 本书被标记为禁止推荐</h4>
+                    <ul style="margin:0;padding-left:20px;color:#721c24;font-size:13px;">
+                        ${report.severeWarnings.slice(0, 10).map(w => `<li>${w.title}</li>`).join('')}
+                        ${report.severeWarnings.length > 10 ? `<li>...还有 ${report.severeWarnings.length - 10} 本</li>` : ''}
                     </ul>
                 </div>`;
         }
@@ -487,19 +488,23 @@ class App {
             </div>
         </div>`;
 
-        html += '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f5f7fa;"><th style="padding:8px;text-align:left;border-bottom:2px solid #ddd;width:30px;">#</th><th style="padding:8px;text-align:left;border-bottom:2px solid #ddd;">书名</th><th style="padding:8px;text-align:left;border-bottom:2px solid #ddd;">作者</th><th style="padding:8px;text-align:center;border-bottom:2px solid #ddd;">分数</th><th style="padding:8px;text-align:center;border-bottom:2px solid #ddd;">难度</th><th style="padding:8px;text-align:center;border-bottom:2px solid #ddd;">评级</th><th style="padding:8px;text-align:center;border-bottom:2px solid #ddd;">风险</th></tr></thead><tbody>';
+        html += '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f5f7fa;"><th style="padding:8px;text-align:left;border-bottom:2px solid #ddd;width:30px;">#</th><th style="padding:8px;text-align:left;border-bottom:2px solid #ddd;">书名</th><th style="padding:8px;text-align:left;border-bottom:2px solid #ddd;">作者</th><th style="padding:8px;text-align:center;border-bottom:2px solid #ddd;">分数</th><th style="padding:8px;text-align:center;border-bottom:2px solid #ddd;">评级</th><th style="padding:8px;text-align:center;border-bottom:2px solid #ddd;">风险</th><th style="padding:8px;text-align:left;border-bottom:2px solid #ddd;">敏感内容</th></tr></thead><tbody>';
 
         pageData.forEach(({ book, analysis }, i) => {
-            const sc = analysis.score >= 80 ? '#28a745' : analysis.score >= 60 ? '#4facfe' : analysis.score >= 40 ? '#ffc107' : '#dc3545';
-            const lc = analysis.level === '非常适合' || analysis.level === '适合' ? '#28a745' : analysis.level === '需要审核' ? '#ffc107' : '#dc3545';
-            html += `<tr style="background:${i%2===0?'#fff':'#f8fafc'};">
+            const sc = analysis.score >= 80 ? '#28a745' : analysis.score >= 60 ? '#ffc107' : '#dc3545';
+            const lc = analysis.level === '适合' ? '#28a745' : analysis.level === '需要审核' ? '#ffc107' : '#dc3545';
+            const rc = analysis.riskLevel === '高' ? '#dc3545' : analysis.riskLevel === '中' ? '#ffc107' : '#28a745';
+            const sensitiveInfo = analysis.sensitiveWordsFound.length > 0 
+                ? analysis.sensitiveWordsFound.map(s => `<span style="color:${s.level==='严重_直接不适'?'#dc3545':s.level==='明显_需要审核'?'#ffc107':'#666'};font-size:11px;">${s.category}</span>`).join(' ')
+                : '<span style="color:#28a745;font-size:11px;">无</span>';
+            html += `<tr style="background:${analysis.riskLevel==='高'?'#fff5f5':analysis.riskLevel==='中'?'#fffdf0':'#fff'};">
                 <td style="padding:8px;border-bottom:1px solid #eee;color:#999;">${start+i+1}</td>
                 <td style="padding:8px;border-bottom:1px solid #eee;font-weight:500;">${book.title}</td>
                 <td style="padding:8px;border-bottom:1px solid #eee;color:#666;">${book.author}</td>
                 <td style="padding:8px;border-bottom:1px solid #eee;text-align:center;font-weight:700;color:${sc};">${analysis.score}</td>
-                <td style="padding:8px;border-bottom:1px solid #eee;text-align:center;">${analysis.difficulty}</td>
                 <td style="padding:8px;border-bottom:1px solid #eee;text-align:center;color:${lc};font-weight:500;">${analysis.level}</td>
-                <td style="padding:8px;border-bottom:1px solid #eee;text-align:center;">${analysis.overLevelRisk}</td>
+                <td style="padding:8px;border-bottom:1px solid #eee;text-align:center;color:${rc};font-weight:500;">${analysis.riskLevel}</td>
+                <td style="padding:8px;border-bottom:1px solid #eee;font-size:11px;">${sensitiveInfo}</td>
             </tr>`;
         });
 
@@ -530,12 +535,11 @@ class App {
             书名: book.title,
             作者: book.author,
             分类: book.category || '未分类',
-            难度: analysis.difficulty,
             分数: analysis.score,
             评级: analysis.level,
-            风险等级: analysis.overLevelRisk,
+            风险等级: analysis.riskLevel,
             适用年龄: analysis.ageRange.join('-'),
-            敏感词发现: analysis.sensitiveWordsFound.map(s => `${s.category}: ${s.words.join('、')}`).join('; '),
+            敏感内容: analysis.sensitiveWordsFound.map(s => `${s.category}: ${s.words.join('、')}`).join('; '),
             风险警告: analysis.warnings.join('; '),
             AI建议: analysis.suggestions.join('; ')
         }));
@@ -548,31 +552,31 @@ class App {
         const name = input.value.trim();
         if (!name) { alert('请输入书名'); return; }
         rd.style.display = 'block';
-        rd.innerHTML = '<div class="ai-search-loading"><div class="spinner"></div><p>🤖 AI正在分析《' + name + '》...</p></div>';
+        rd.innerHTML = '<div class="ai-search-loading"><div class="spinner"></div><p>🤖 AI正在严格分析《' + name + '》...</p></div>';
         setTimeout(() => {
             const localBook = db.getBooks().find(b => b.title.includes(name));
             const book = localBook || this.getKnownBook(name);
             const analysis = aiReviewEngine.analyzeBook(book);
             const sc = analysis.score >= 80 ? 'score-excellent' : analysis.score >= 60 ? 'score-good' : analysis.score >= 40 ? 'score-warning' : 'score-danger';
-            const lc = analysis.score >= 80 ? '#28a745' : analysis.score >= 60 ? '#4facfe' : analysis.score >= 40 ? '#ffc107' : '#dc3545';
-            const rc = analysis.overLevelRisk === '高' ? '#dc3545' : analysis.overLevelRisk === '中' ? '#ffc107' : '#28a745';
+            const lc = analysis.score >= 80 ? '#28a745' : analysis.score >= 60 ? '#ffc107' : '#dc3545';
+            const rc = analysis.riskLevel === '高' ? '#dc3545' : analysis.riskLevel === '中' ? '#ffc107' : '#28a745';
             
             let sensitiveHtml = '';
             if (analysis.sensitiveWordsFound.length > 0) {
                 sensitiveHtml = '<div class="ai-search-analysis" style="background:#f8d7da;border:1px solid #dc3545;"><h4 style="color:#721c24;">🚨 敏感内容检测</h4><ul style="color:#721c24;">';
                 analysis.sensitiveWordsFound.forEach(s => {
-                    sensitiveHtml += `<li><strong>${s.category}</strong>：<span style="color:#dc3545;">${s.words.join('、')}</span></li>`;
+                    sensitiveHtml += `<li><strong>${s.category}</strong> (${s.level})：<span style="color:#dc3545;">${s.words.slice(0, 8).join('、')}</span></li>`;
                 });
                 sensitiveHtml += '</ul></div>';
             }
 
             rd.innerHTML = `<div class="ai-search-book">
                 <div class="ai-search-book-header"><div><h3 class="ai-search-book-title">${book.title}</h3><p class="ai-search-book-author">${book.author}</p></div><div class="score-badge ${sc}">${analysis.score}分</div></div>
-                <div class="ai-search-score"><div class="score-number" style="color:${lc}">${analysis.score}</div><div class="score-label">适宜性评分 · ${analysis.level}</div></div>
+                <div class="ai-search-score" style="background:${analysis.riskLevel==='高'?'linear-gradient(135deg, #dc3545 0%, #c82333 100%)':analysis.riskLevel==='中'?'linear-gradient(135deg, #ffc107 0%, #e0a800 100%)':'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}"><div class="score-number" style="color:white">${analysis.score}</div><div class="score-label">适宜性评分 · ${analysis.level}</div></div>
                 <div class="ai-search-details">
                     <div class="ai-search-detail-card"><div class="detail-value">${analysis.difficulty}</div><div class="detail-label">阅读难度</div></div>
                     <div class="ai-search-detail-card"><div class="detail-value">${analysis.ageRange.length > 0 ? analysis.ageRange.join('-') + '岁' : '不适合'}</div><div class="detail-label">适用年龄</div></div>
-                    <div class="ai-search-detail-card"><div class="detail-value" style="color:${rc}">${analysis.overLevelRisk}</div><div class="detail-label">超纲风险</div></div>
+                    <div class="ai-search-detail-card"><div class="detail-value" style="color:${rc}">${analysis.riskLevel}</div><div class="detail-label">风险等级</div></div>
                     <div class="ai-search-detail-card"><div class="detail-value">${book.category||'未分类'}</div><div class="detail-label">分类</div></div>
                 </div>
                 ${sensitiveHtml}
@@ -626,7 +630,29 @@ class App {
             '人世间': { author: '梁晓声', category: '文学', description: '讲述了周家三代人的生活变迁', difficulty: '中等' },
             '繁花': { author: '金宇澄', category: '文学', description: '用上海话写出了上海人的日常', difficulty: '较难' },
             '秋园': { author: '杨本芬', category: '文学', description: '一位八旬老人讲述她和她妈妈的故事', difficulty: '中等' },
-            '海洋中的性与爱': { author: '未知', category: '科普', description: '一本关于海洋生物性与爱的科普书籍，包含大量性相关内容', difficulty: '中等' }
+            '海洋中的性与爱': { author: '未知', category: '科普', description: '一本关于海洋生物性与爱的科普书籍，包含大量性相关内容', difficulty: '中等' },
+            '金瓶梅': { author: '兰陵笑笑生', category: '古典小说', description: '明代小说，包含大量性描写', difficulty: '较难' },
+            '肉蒲团': { author: '李渔', category: '古典小说', description: '明代小说，包含大量性描写', difficulty: '较难' },
+            '废都': { author: '贾平凹', category: '文学', description: '当代小说，包含性描写', difficulty: '较难' },
+            '白鹿原': { author: '陈忠实', category: '文学', description: '当代小说，包含暴力内容', difficulty: '较难' },
+            '红高粱': { author: '莫言', category: '文学', description: '当代小说，包含暴力内容', difficulty: '中等' },
+            '丰乳肥臀': { author: '莫言', category: '文学', description: '当代小说，包含暴力内容', difficulty: '中等' },
+            '蛙': { author: '莫言', category: '文学', description: '当代小说，涉及敏感话题', difficulty: '中等' },
+            '活着': { author: '余华', category: '文学', description: '当代小说，包含暴力内容', difficulty: '中等' },
+            '许三观卖血记': { author: '余华', category: '文学', description: '当代小说，包含敏感内容', difficulty: '中等' },
+            '兄弟': { author: '余华', category: '文学', description: '当代小说，包含成人内容', difficulty: '中等' },
+            '霸王别姬': { author: '李碧华', category: '文学', description: '当代小说，包含敏感内容', difficulty: '中等' },
+            '色戒': { author: '张爱玲', category: '文学', description: '当代小说，包含成人内容', difficulty: '中等' },
+            '倾城之恋': { author: '张爱玲', category: '文学', description: '当代小说，包含成人内容', difficulty: '中等' },
+            '半生缘': { author: '张爱玲', category: '文学', description: '当代小说，包含成人内容', difficulty: '中等' },
+            '金锁记': { author: '张爱玲', category: '文学', description: '当代小说，包含敏感内容', difficulty: '中等' },
+            '沉沦': { author: '郁达夫', category: '文学', description: '现代小说，包含敏感内容', difficulty: '中等' },
+            '春风沉醉的晚上': { author: '郁达夫', category: '文学', description: '现代小说，包含敏感内容', difficulty: '中等' },
+            '迟桂花': { author: '郁达夫', category: '文学', description: '现代小说，包含敏感内容', difficulty: '中等' },
+            '官场现形记': { author: '李宝嘉', category: '古典小说', description: '晚清小说，包含敏感内容', difficulty: '较难' },
+            '二十年目睹之怪现状': { author: '吴趼人', category: '古典小说', description: '晚清小说，包含敏感内容', difficulty: '较难' },
+            '老残游记': { author: '刘鹗', category: '古典小说', description: '晚清小说，包含敏感内容', difficulty: '较难' },
+            '孽海花': { author: '曾朴', category: '古典小说', description: '晚清小说，包含敏感内容', difficulty: '较难' }
         };
         const n = title.replace(/[《》]/g, '');
         for (const [k, v] of Object.entries(db2)) { if (n.includes(k) || k.includes(n)) return { title, ...v }; }
