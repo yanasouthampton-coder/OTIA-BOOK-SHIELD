@@ -124,17 +124,43 @@ class App {
         html += pageBooks.map(b => {
             const g = b.applicableGrades.map(x => x + '年级').join('、');
             const sc = b.reviewStatus === '已通过' ? '#28a745' : b.reviewStatus === '有超纲' ? '#dc3545' : '#6c757d';
+            
+            // 获取AI审核结果
+            const aiResult = this.getAIReviewResult(b);
+            const aiScore = aiResult ? aiResult.score : null;
+            const aiRisk = aiResult ? aiResult.riskLevel : null;
+            const aiLevel = aiResult ? aiResult.level : null;
+            
+            const scoreColor = aiScore >= 80 ? '#28a745' : aiScore >= 60 ? '#ffc107' : '#dc3545';
+            const riskColor = aiRisk === '高' ? '#dc3545' : aiRisk === '中' ? '#ffc107' : '#28a745';
+            
             return `<div class="book-item" style="padding:16px;border:1px solid #e8ecf1;border-radius:10px;margin-bottom:12px;background:#fff;">
-                <h3 style="margin:0 0 8px;color:#1a1a2e;">${b.title}</h3>
-                <div style="margin-bottom:8px;">
-                    <span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;background:#667eea;color:#fff;margin-right:6px;">${b.category||''}</span>
-                    <span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;background:#ffc107;color:#333;margin-right:6px;">${b.overallDifficulty}</span>
-                    <span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;background:${sc};color:#fff;">${b.reviewStatus}</span>
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                    <div style="flex:1;">
+                        <h3 style="margin:0 0 8px;color:#1a1a2e;">${b.title}</h3>
+                        <div style="margin-bottom:8px;">
+                            <span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;background:#667eea;color:#fff;margin-right:6px;">${b.category||''}</span>
+                            <span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;background:#ffc107;color:#333;margin-right:6px;">${b.overallDifficulty}</span>
+                            <span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;background:${sc};color:#fff;">${b.reviewStatus}</span>
+                        </div>
+                        <p style="margin:4px 0;color:#666;font-size:13px;">作者：${b.author} · 适用：${g}</p>
+                    </div>
+                    ${aiScore !== null ? `
+                    <div style="text-align:center;padding:12px;background:${riskColor === '#dc3545' ? '#fff5f5' : riskColor === '#ffc107' ? '#fffdf0' : '#f0fff4'};border-radius:10px;min-width:100px;margin-left:12px;">
+                        <div style="font-size:24px;font-weight:700;color:${scoreColor};">${aiScore}</div>
+                        <div style="font-size:11px;color:#666;">AI评分</div>
+                        <div style="font-size:12px;color:${riskColor};font-weight:500;margin-top:4px;">风险：${aiRisk}</div>
+                        <button class="btn btn-secondary" style="margin-top:8px;padding:4px 10px;font-size:11px;" onclick="app.editAIReview(${b.id})">编辑</button>
+                    </div>
+                    ` : `
+                    <div style="text-align:center;padding:12px;background:#f8f9fa;border-radius:10px;min-width:100px;margin-left:12px;">
+                        <div style="font-size:12px;color:#999;">未审核</div>
+                        <button class="btn btn-primary" style="margin-top:8px;padding:4px 10px;font-size:11px;" onclick="app.reviewSingleBook(${b.id})">审核</button>
+                    </div>
+                    `}
                 </div>
-                <p style="margin:4px 0;color:#666;font-size:13px;">作者：${b.author} · 适用：${g}</p>
                 <div style="margin-top:10px;display:flex;gap:8px;">
-                    <button class="btn btn-primary" style="padding:6px 14px;font-size:12px;" onclick="app.showBookModal(${b.id})">编辑</button>
-                    <button class="btn btn-success" style="padding:6px 14px;font-size:12px;" onclick="app.evaluateBook(${b.id})">评估</button>
+                    <button class="btn btn-primary" style="padding:6px 14px;font-size:12px;" onclick="app.showBookModal(${b.id})">编辑书目</button>
                     <button class="btn btn-danger" style="padding:6px 14px;font-size:12px;" onclick="app.deleteBook(${b.id})">删除</button>
                 </div>
             </div>`;
@@ -152,6 +178,84 @@ class App {
         c.innerHTML = html;
     }
 
+    // 获取AI审核结果
+    getAIReviewResult(book) {
+        const cache = this.aiReviewCache || {};
+        return cache[book.id] || null;
+    }
+
+    // 缓存AI审核结果
+    setAIReviewCache(bookId, result) {
+        if (!this.aiReviewCache) this.aiReviewCache = {};
+        this.aiReviewCache[bookId] = result;
+    }
+
+    // 单本书AI审核
+    reviewSingleBook(bookId) {
+        const book = db.getBookById(bookId);
+        if (!book) return;
+        
+        const analysis = aiReviewEngine.analyzeBook(book);
+        this.setAIReviewCache(bookId, analysis);
+        this.renderBooks();
+    }
+
+    // 批量AI审核所有书目
+    batchAIReview() {
+        const books = db.getBooks();
+        if (!books.length) { alert('请先导入书目数据'); return; }
+        
+        let count = 0;
+        books.forEach(b => {
+            const analysis = aiReviewEngine.analyzeBook(b);
+            this.setAIReviewCache(b.id, analysis);
+            count++;
+        });
+        
+        alert(`已完成 ${count} 本书的AI审核`);
+        this.renderBooks();
+    }
+
+    // 编辑AI审核结果
+    editAIReview(bookId) {
+        const book = db.getBookById(bookId);
+        if (!book) return;
+        
+        const cached = this.getAIReviewResult(book);
+        const currentScore = cached ? cached.score : 50;
+        const currentRisk = cached ? cached.riskLevel : '中';
+        
+        const newScore = prompt(`《${book.title}》\n当前AI评分：${currentScore}\n请输入新评分（0-100）：`, currentScore);
+        if (newScore === null) return;
+        
+        const score = parseInt(newScore);
+        if (isNaN(score) || score < 0 || score > 100) {
+            alert('请输入0-100之间的数字');
+            return;
+        }
+        
+        let riskLevel = '低';
+        if (score < 40) riskLevel = '高';
+        else if (score < 70) riskLevel = '中';
+        
+        const newAnalysis = {
+            score: score,
+            riskLevel: riskLevel,
+            level: score >= 80 ? '适合' : score >= 60 ? '需要审核' : score >= 40 ? '不建议' : '禁止',
+            reason: '教师手动调整'
+        };
+        
+        this.setAIReviewCache(bookId, newAnalysis);
+        
+        // 更新书目的审核状态
+        let reviewStatus = '待审核';
+        if (score >= 80) reviewStatus = '已通过';
+        else if (score < 40) reviewStatus = '有超纲';
+        
+        db.updateBook(bookId, { reviewStatus: reviewStatus });
+        this.renderBooks();
+    }
+
     goBookPage(p) {
         const books = db.getBooks();
         const tp = Math.ceil(books.length / this.bookPageSize);
@@ -167,13 +271,31 @@ class App {
         if (bf !== 'all') chs = chs.filter(c => c.bookId === parseInt(bf));
         if (sf === '有超纲') chs = chs.filter(c => c.isOverLevel);
         else if (sf !== 'all') chs = chs.filter(c => c.reviewStatus === sf);
+        
+        // 更新超纲汇总
+        this.updateOverLevelSummary();
+        
         const c = document.getElementById('chapters-list');
-        if (!chs.length) { c.innerHTML = '<p style="text-align:center;color:#999;padding:40px;">暂无章节数据</p>'; return; }
+        if (!chs.length) { c.innerHTML = '<p style="text-align:center;color:#999;padding:40px;">暂无章节数据，点击"AI分析章节"生成</p>'; return; }
+        
         c.innerHTML = chs.map(ch => {
             const book = db.getBookById(ch.bookId);
-            return `<div class="chapter-item ${ch.isOverLevel ? 'overlevel' : ''}" style="padding:16px;border:1px solid #e8ecf1;border-radius:10px;margin-bottom:12px;background:#fff;">
-                <h3 style="margin:0 0 8px;font-size:15px;">${book?book.title:'未知'} - 第${ch.chapterNumber}章：${ch.title}</h3>
-                <p style="margin:4px 0;color:#666;font-size:13px;">${ch.summary||''}</p>
+            const overLevelClass = ch.isOverLevel ? 'overlevel' : '';
+            const overLevelStyle = ch.isOverLevel ? 'border-color:#dc3545;background:#fff5f5;' : '';
+            const statusColor = ch.isOverLevel ? '#dc3545' : ch.reviewStatus === '已审核' ? '#28a745' : '#ffc107';
+            
+            return `<div class="chapter-item ${overLevelClass}" style="padding:16px;border:1px solid #e8ecf1;border-radius:10px;margin-bottom:12px;background:#fff;${overLevelStyle}">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                    <div style="flex:1;">
+                        <h3 style="margin:0 0 8px;font-size:15px;">${book?book.title:'未知'} - 第${ch.chapterNumber}章：${ch.title}</h3>
+                        <p style="margin:4px 0;color:#666;font-size:13px;">${ch.summary||'暂无摘要'}</p>
+                        ${ch.keywords && ch.keywords.length ? `<p style="margin:4px 0;color:#999;font-size:12px;">关键词：${ch.keywords.join('、')}</p>` : ''}
+                    </div>
+                    <div style="text-align:center;padding:8px 12px;background:${statusColor}10;border-radius:8px;margin-left:12px;">
+                        <div style="font-size:12px;color:${statusColor};font-weight:500;">${ch.isOverLevel ? '超纲' : ch.reviewStatus}</div>
+                        ${ch.isOverLevel ? `<div style="font-size:11px;color:#dc3545;margin-top:4px;">${ch.overLevelType||'超纲内容'}</div>` : ''}
+                    </div>
+                </div>
                 <div style="margin-top:10px;display:flex;gap:8px;">
                     <button class="btn btn-primary" style="padding:6px 14px;font-size:12px;" onclick="app.showChapterModal(${ch.id})">编辑</button>
                     <button class="btn btn-success" style="padding:6px 14px;font-size:12px;" onclick="app.approveChapter(${ch.id})">通过</button>
@@ -181,6 +303,127 @@ class App {
                 </div>
             </div>`;
         }).join('');
+    }
+
+    // 更新超纲汇总
+    updateOverLevelSummary() {
+        const books = db.getBooks();
+        const chapters = db.getChapters();
+        
+        let totalChapters = chapters.length;
+        let overLevelChapters = chapters.filter(c => c.isOverLevel).length;
+        let booksWithOverLevel = new Set(chapters.filter(c => c.isOverLevel).map(c => c.bookId)).size;
+        
+        const statsDiv = document.getElementById('overlevel-stats');
+        if (statsDiv) {
+            statsDiv.innerHTML = `
+                <div style="background:#fff;padding:12px;border-radius:8px;text-align:center;">
+                    <div style="font-size:24px;font-weight:700;color:#667eea;">${books.length}</div>
+                    <div style="font-size:12px;color:#666;">总书目数</div>
+                </div>
+                <div style="background:#fff;padding:12px;border-radius:8px;text-align:center;">
+                    <div style="font-size:24px;font-weight:700;color:#667eea;">${totalChapters}</div>
+                    <div style="font-size:12px;color:#666;">总章节数</div>
+                </div>
+                <div style="background:#fff;padding:12px;border-radius:8px;text-align:center;">
+                    <div style="font-size:24px;font-weight:700;color:#dc3545;">${overLevelChapters}</div>
+                    <div style="font-size:12px;color:#666;">超纲章节</div>
+                </div>
+                <div style="background:#fff;padding:12px;border-radius:8px;text-align:center;">
+                    <div style="font-size:24px;font-weight:700;color:#dc3545;">${booksWithOverLevel}</div>
+                    <div style="font-size:12px;color:#666;">含超纲书目</div>
+                </div>
+            `;
+        }
+        
+        // 显示超纲书目列表
+        const bookListDiv = document.getElementById('overlevel-book-list');
+        if (bookListDiv) {
+            const overLevelBooks = books.filter(b => {
+                const bookChapters = chapters.filter(c => c.bookId === b.id);
+                return bookChapters.some(c => c.isOverLevel);
+            });
+            
+            if (overLevelBooks.length > 0) {
+                bookListDiv.innerHTML = `
+                    <h4 style="margin:0 0 8px;color:#dc3545;font-size:14px;">含超纲内容的书目：</h4>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                        ${overLevelBooks.map(b => {
+                            const overCount = chapters.filter(c => c.bookId === b.id && c.isOverLevel).length;
+                            return `<span style="background:#dc354510;border:1px solid #dc354530;color:#dc3545;padding:4px 12px;border-radius:16px;font-size:12px;cursor:pointer;" onclick="app.filterChaptersByBook(${b.id})">${b.title} (${overCount}章)</span>`;
+                        }).join('')}
+                    </div>
+                `;
+            } else {
+                bookListDiv.innerHTML = '<p style="color:#28a745;font-size:13px;">✅ 暂无超纲内容</p>';
+            }
+        }
+    }
+
+    // 按书目筛选章节
+    filterChaptersByBook(bookId) {
+        const filter = document.getElementById('chapter-book-filter');
+        if (filter) {
+            filter.value = bookId;
+            this.renderChapters();
+        }
+    }
+
+    // AI分析所有章节
+    analyzeAllChapters() {
+        const books = db.getBooks();
+        if (!books.length) { alert('请先导入书目数据'); return; }
+        
+        let totalChapters = 0;
+        let overLevelCount = 0;
+        
+        books.forEach(book => {
+            // 为每本书生成章节（如果还没有的话）
+            const existingChapters = db.getChaptersByBookId(book.id);
+            if (existingChapters.length === 0) {
+                // 生成默认章节
+                const chapterCount = book.totalChapters || 10;
+                for (let i = 1; i <= Math.min(chapterCount, 20); i++) {
+                    const isOverLevel = this.checkChapterOverLevel(book, i);
+                    db.addChapter({
+                        bookId: book.id,
+                        chapterNumber: i,
+                        title: `第${i}章`,
+                        summary: isOverLevel ? '此章节可能包含超纲内容' : '正常章节内容',
+                        keywords: isOverLevel ? ['超纲', '敏感'] : [],
+                        estimatedDifficulty: book.overallDifficulty || '中等',
+                        isOverLevel: isOverLevel,
+                        overLevelType: isOverLevel ? 'AI检测' : null,
+                        overLevelDescription: isOverLevel ? 'AI检测到可能包含不适合初中生的内容' : null,
+                        reviewStatus: '待审核'
+                    });
+                    totalChapters++;
+                    if (isOverLevel) overLevelCount++;
+                }
+            }
+        });
+        
+        alert(`AI分析完成！\n生成 ${totalChapters} 个章节\n其中 ${overLevelCount} 个超纲章节`);
+        this.renderChapters();
+    }
+
+    // 检查章节是否超纲
+    checkChapterOverLevel(book, chapterNumber) {
+        const text = `${book.title} ${book.description || ''} ${book.category || ''}`.toLowerCase();
+        
+        // 检查敏感词
+        for (const [category, words] of Object.entries(aiReviewEngine.sensitiveWords)) {
+            for (const [level, wordList] of Object.entries(words)) {
+                if (Array.isArray(wordList)) {
+                    const found = wordList.filter(w => text.includes(w.toLowerCase()));
+                    if (found.length > 0) {
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        return false;
     }
 
     renderRules() {

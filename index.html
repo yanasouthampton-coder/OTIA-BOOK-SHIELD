@@ -38,8 +38,8 @@
                 <h2>书目列表</h2>
                 <div class="actions">
                     <button id="add-book-btn" class="btn btn-primary">+ 添加书目</button>
-                    <button id="ai-review-btn" class="btn btn-info">🤖 AI智能审核</button>
-                    <button id="batch-evaluate-btn" class="btn btn-success">✓ 批量评估</button>
+                    <button id="batch-ai-review-btn" class="btn btn-info" onclick="app.batchAIReview()">🤖 批量AI审核</button>
+                    <button id="ai-review-btn" class="btn btn-success">📊 审核报告</button>
                 </div>
             </div>
             
@@ -161,8 +161,20 @@
             <div class="section-header">
                 <h2>章节审核</h2>
                 <div class="actions">
-                    <button id="batch-review-btn" class="btn btn-primary">批量审核</button>
-                    <button id="export-review-btn" class="btn btn-success">导出审核结果</button>
+                    <button class="btn btn-primary" onclick="app.analyzeAllChapters()">🤖 AI分析章节</button>
+                    <button id="batch-review-btn" class="btn btn-success">批量通过</button>
+                    <button id="export-review-btn" class="btn btn-warning">导出审核结果</button>
+                </div>
+            </div>
+
+            <!-- 超纲章节汇总 -->
+            <div id="overlevel-summary" style="background:#fff5f5;border:1px solid #dc3545;border-radius:10px;padding:16px;margin-bottom:20px;">
+                <h3 style="margin:0 0 12px;color:#dc3545;">🚨 超纲内容汇总</h3>
+                <div id="overlevel-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
+                    <!-- 统计数据将在这里显示 -->
+                </div>
+                <div id="overlevel-book-list" style="margin-top:12px;">
+                    <!-- 超纲书目列表将在这里显示 -->
                 </div>
             </div>
 
